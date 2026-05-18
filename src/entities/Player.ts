@@ -1,11 +1,15 @@
 import Phaser from 'phaser';
-import { PLAYER_SIZE, PLAYER_COLOR } from '../config';
+import { GAME_WIDTH, PLAYER_SIZE, PLAYER_COLOR, PLAYER_SPEED } from '../config';
 
 export class Player {
   x: number;
   readonly y: number;
 
   private graphics: Phaser.GameObjects.Graphics;
+  private keyA: Phaser.Input.Keyboard.Key;
+  private keyD: Phaser.Input.Keyboard.Key;
+  private keyLeft: Phaser.Input.Keyboard.Key;
+  private keyRight: Phaser.Input.Keyboard.Key;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     this.x = x;
@@ -17,11 +21,26 @@ export class Player {
     g.fillRect(-PLAYER_SIZE / 2, -PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE);
     g.fillCircle(0, -PLAYER_SIZE - 8, 8);
     g.setPosition(x, y);
-
     this.graphics = g;
+
+    const keyboard = scene.input.keyboard!;
+    // 阻止方向键触发浏览器默认行为(否则按 ←/→ 玩家走位的同时页面也会滚动)
+    keyboard.addCapture('LEFT,RIGHT');
+    this.keyA = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+    this.keyD = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+    this.keyLeft = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
+    this.keyRight = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
   }
 
-  update(_deltaMs: number): void {
-    // commit 3 实现:读 A/D + ←/→,匀速移动,夹紧到画布边界
+  update(deltaMs: number): void {
+    const goLeft = this.keyA.isDown || this.keyLeft.isDown;
+    const goRight = this.keyD.isDown || this.keyRight.isDown;
+    // 同时按或都不按 → 不动;否则按 goRight 取 +1 / -1
+    const direction = goLeft === goRight ? 0 : goRight ? 1 : -1;
+
+    this.x += direction * PLAYER_SPEED * (deltaMs / 1000);
+    const halfWidth = PLAYER_SIZE / 2;
+    this.x = Phaser.Math.Clamp(this.x, halfWidth, GAME_WIDTH - halfWidth);
+    this.graphics.setPosition(this.x, this.y);
   }
 }

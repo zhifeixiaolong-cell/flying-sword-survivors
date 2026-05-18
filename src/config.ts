@@ -11,3 +11,4 @@ export const WALL_THICKNESS = 3;
 
 export const PLAYER_SIZE = 24;
 export const PLAYER_COLOR = 0x88ccff;
+export const PLAYER_SPEED = 300; // px/秒,匀速;M2 接发射体验过再决定是否引入加减速
