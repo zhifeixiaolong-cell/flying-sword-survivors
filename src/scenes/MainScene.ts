@@ -1,18 +1,23 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT } from '../config';
+import { GAME_WIDTH, WALL_Y, WALL_COLOR, WALL_THICKNESS } from '../config';
+import { Player } from '../entities/Player';
 
 export class MainScene extends Phaser.Scene {
+  private player!: Player;
+
   constructor() {
     super('MainScene');
   }
 
   create(): void {
-    this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'Hello Phaser', {
-        fontFamily: 'monospace',
-        fontSize: '48px',
-        color: '#e6e6f0',
-      })
-      .setOrigin(0.5);
+    const wall = this.add.graphics();
+    wall.lineStyle(WALL_THICKNESS, WALL_COLOR, 1);
+    wall.lineBetween(0, WALL_Y, GAME_WIDTH, WALL_Y);
+
+    this.player = new Player(this, GAME_WIDTH / 2, WALL_Y);
+  }
+
+  override update(_time: number, delta: number): void {
+    this.player.update(delta);
   }
 }
