@@ -8,3 +8,6 @@ export const BG_COLOR = '#000000';
 export const WALL_Y = GAME_HEIGHT - 80;
 export const WALL_COLOR = 0x888888;
 export const WALL_THICKNESS = 3;
+
+export const PLAYER_SIZE = 24;
+export const PLAYER_COLOR = 0x88ccff;
