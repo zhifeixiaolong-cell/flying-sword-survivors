@@ -72,6 +72,7 @@ export class Sword {
   private readonly effectiveMinSpeed: number;
   private readonly effectiveMaxDistance: number;
   private readonly effectiveSpeedFloor: number;
+  private readonly effectiveTurnRateRad: number; // 弧度/秒
 
   private readonly getPlayerPos: () => { x: number; y: number };
   private readonly graphics: Phaser.GameObjects.Graphics;
@@ -89,6 +90,9 @@ export class Sword {
     this.effectiveMinSpeed = config.minSpeed * stats.minSpeedMul;
     this.effectiveMaxDistance = config.maxDistance * stats.maxDistanceMul;
     this.effectiveSpeedFloor = config.speedFloor; // floor 是物理兜底, 不参与倍率
+    // turnRate 配置单位是 °/s, 内部存弧度/秒方便每帧直接乘 dt
+    this.effectiveTurnRateRad =
+      ((config.turnRate * stats.turnRateMul) * Math.PI) / 180;
 
     // INV-01 dev-time 断言: 一旦 PlayerStats / SwordConfig 任何一侧改值,
     // 都会被首次发射触发, 不依赖人工核对 PLAYER_SPEED 与 SWORD_MIN_SPEED.
@@ -144,8 +148,8 @@ export class Sword {
         break;
       }
       case SwordState.RETURNING: {
-        // 朴素回程: 每帧直指玩家. Commit 2 改为带 turn rate 限制的 homing.
-        this.aimAtPlayer();
+        // 带角速度限制的 homing — 飞剑画"柔和 C 弧"追玩家, 不机械直追.
+        this.applyHoming(dt);
         break;
       }
     }
@@ -184,7 +188,8 @@ export class Sword {
     }
   }
 
-  // 把 dirX/dirY 重设为"飞剑当前位置 → 玩家当前位置"的单位向量
+  // 把 dirX/dirY 重设为"飞剑当前位置 → 玩家当前位置"的单位向量.
+  // 在 TURNING 用 (回程方向初值), 不在 RETURNING 用 (RETURNING 走 applyHoming).
   private aimAtPlayer(): void {
     const player = this.getPlayerPos();
     const dx = player.x - this.x;
@@ -193,6 +198,34 @@ export class Sword {
     if (mag < 1e-6) return; // 几乎贴着玩家, 方向不变 (入鞘判定会处理)
     this.dirX = dx / mag;
     this.dirY = dy / mag;
+  }
+
+  // 角速度限制下的方向修正: 当前方向 → 目标方向 (指向玩家), 每帧最多旋转
+  // effectiveTurnRateRad * dt 弧度. atan2(cross, dot) 自带 360° 边界处理.
+  private applyHoming(dt: number): void {
+    const player = this.getPlayerPos();
+    const dx = player.x - this.x;
+    const dy = player.y - this.y;
+    const mag = Math.hypot(dx, dy);
+    if (mag < 1e-6) return;
+    const targetDirX = dx / mag;
+    const targetDirY = dy / mag;
+
+    // 当前方向到目标方向的有符号最短旋转角 (弧度, 范围 (-π, π])
+    const cross = this.dirX * targetDirY - this.dirY * targetDirX;
+    const dot = this.dirX * targetDirX + this.dirY * targetDirY;
+    const delta = Math.atan2(cross, dot);
+
+    const maxRot = this.effectiveTurnRateRad * dt;
+    const actualRot = Phaser.Math.Clamp(delta, -maxRot, maxRot);
+
+    // 2D 旋转矩阵旋转 (dirX, dirY) 一个 actualRot 角度
+    const cosR = Math.cos(actualRot);
+    const sinR = Math.sin(actualRot);
+    const newDirX = this.dirX * cosR - this.dirY * sinR;
+    const newDirY = this.dirX * sinR + this.dirY * cosR;
+    this.dirX = newDirX;
+    this.dirY = newDirY;
   }
 
   // V(d) = V_min + (V_max - V_min) × (1 - d/D_max), 兜底 SWORD_SPEED_FLOOR.
