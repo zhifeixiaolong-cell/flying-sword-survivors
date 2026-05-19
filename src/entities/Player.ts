@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, PLAYER_SIZE, PLAYER_COLOR, PLAYER_SPEED } from '../config';
+import { PlayerStats } from './PlayerStats';
 
 export class Player {
   x: number;
   readonly y: number;
+  readonly stats = new PlayerStats();
 
   private graphics: Phaser.GameObjects.Graphics;
   private keyA: Phaser.Input.Keyboard.Key;
