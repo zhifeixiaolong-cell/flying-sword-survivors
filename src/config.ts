@@ -31,8 +31,10 @@ export const SWORD_SHEATHE_RADIUS_PAD = 5;
 // TURNING 状态最长持续时间. 极端 180° 转向理论 972ms (175°/180°/s), 给 50% 余量
 export const SWORD_TURNING_MAX_MS = 1500;
 
-// 占位倒十字: Stage 4 替换为梭形 + 柔光晕
-export const SWORD_PLACEHOLDER_LENGTH = 16; // 长轴 (沿飞行方向)
-export const SWORD_PLACEHOLDER_CROSS = 8; // 横轴 (护手)
-export const SWORD_PLACEHOLDER_WIDTH = 2; // 线宽
-export const SWORD_PLACEHOLDER_COLOR = 0xff8800;
+// 飞剑视觉 (Stage 4): 梭形剑身 + 柔光晕, 全程序化绘制 (Phaser Graphics)
+export const SWORD_BLADE_LENGTH = 24; // 梭形长轴
+export const SWORD_BLADE_WIDTH = 6; // 梭形短轴
+export const SWORD_BLADE_COLOR = 0xff8800;
+export const SWORD_HALO_LENGTH = 32; // 柔光晕长轴 (略大于剑身)
+export const SWORD_HALO_WIDTH = 12; // 柔光晕短轴
+export const SWORD_HALO_ALPHA = 0.3; // 柔光晕透明度

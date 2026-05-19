@@ -4,14 +4,16 @@ import {
   GAME_WIDTH,
   PLAYER_SIZE,
   PLAYER_SPEED,
+  SWORD_BLADE_COLOR,
+  SWORD_BLADE_LENGTH,
+  SWORD_BLADE_WIDTH,
   SWORD_DAMAGE_COEF,
+  SWORD_HALO_ALPHA,
+  SWORD_HALO_LENGTH,
+  SWORD_HALO_WIDTH,
   SWORD_INITIAL_SPEED,
   SWORD_MAX_DISTANCE,
   SWORD_MIN_SPEED,
-  SWORD_PLACEHOLDER_COLOR,
-  SWORD_PLACEHOLDER_CROSS,
-  SWORD_PLACEHOLDER_LENGTH,
-  SWORD_PLACEHOLDER_WIDTH,
   SWORD_SHARPNESS,
   SWORD_SHEATHE_RADIUS_PAD,
   SWORD_SPEED_FLOOR,
@@ -122,14 +124,12 @@ export class Sword {
     this.onDestroyed = onDestroyed;
 
     const g = scene.add.graphics();
-    g.fillStyle(SWORD_PLACEHOLDER_COLOR, 1);
-    const len = SWORD_PLACEHOLDER_LENGTH;
-    const cross = SWORD_PLACEHOLDER_CROSS;
-    const w = SWORD_PLACEHOLDER_WIDTH;
-    // 长轴 (剑身): 从局部 (0, 0) 到 (len, 0), 剑柄在原点, 剑尖在 +x 端
-    g.fillRect(0, -w / 2, len, w);
-    // 短轴 (护手): 在 x = len/4 处 (1/4 靠剑柄端, 故意不居中避免 + 形)
-    g.fillRect(len / 4 - w / 2, -cross / 2, w, cross);
+    // 1. 柔光晕 (先画 → 底层): 较大椭圆 + 低 alpha, 营造"光中有剑"的发光感
+    g.fillStyle(SWORD_BLADE_COLOR, SWORD_HALO_ALPHA);
+    g.fillEllipse(0, 0, SWORD_HALO_LENGTH, SWORD_HALO_WIDTH);
+    // 2. 梭形剑身 (后画 → 顶层): 较小椭圆 + 满 alpha, 长轴沿 +x 与 setRotation 配合
+    g.fillStyle(SWORD_BLADE_COLOR, 1.0);
+    g.fillEllipse(0, 0, SWORD_BLADE_LENGTH, SWORD_BLADE_WIDTH);
     g.setPosition(this.x, this.y);
     g.setRotation(Math.atan2(this.dirY, this.dirX));
     this.graphics = g;
