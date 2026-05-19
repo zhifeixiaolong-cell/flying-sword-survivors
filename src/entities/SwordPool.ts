@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { PlayerStats } from './PlayerStats';
-import { Sword, SwordConfig } from './Sword';
+import { Sword, SwordConfig, SwordSpawn } from './Sword';
 
 // 飞剑资源池. INV-02 (docs/design-invariants.md): 同时存在的飞剑数 ≤ capacity.
 // 池满时 tryFire 返回 false, 调用方按"空响应"处理 — 不排队/不缓冲/不延迟.
@@ -16,13 +16,10 @@ export class SwordPool {
     scene: Phaser.Scene,
     config: SwordConfig,
     stats: PlayerStats,
-    startX: number,
-    startY: number,
-    dirX: number,
-    dirY: number,
+    spawn: SwordSpawn,
   ): boolean {
     if (this.flying.length >= this.capacity) return false;
-    const sword = new Sword(scene, config, stats, startX, startY, dirX, dirY, () => {
+    const sword = new Sword(scene, config, stats, spawn, () => {
       const idx = this.flying.indexOf(sword);
       if (idx >= 0) this.flying.splice(idx, 1);
     });

@@ -26,6 +26,8 @@ export const SWORD_SHARPNESS = 0.7; // 锋利度系数, Stage 3 才用
 export const SWORD_DAMAGE_COEF = 0.1; // 伤害系数, Stage 3 才用
 export const SWORD_TURN_RATE = 180; // 追踪角速度上限 °/s, Stage 2 才用
 export const SWORD_POOL_CAPACITY = 1; // 资源池容量, M5+ 升级才动
+// 入鞘碰撞圆半径加成 (= PLAYER_SIZE/2 + 此值). 设计文档 §2.3 风险提示: 避免擦边不算
+export const SWORD_SHEATHE_RADIUS_PAD = 5;
 
 // 占位倒十字: Stage 4 替换为梭形 + 柔光晕
 export const SWORD_PLACEHOLDER_LENGTH = 16; // 长轴 (沿飞行方向)

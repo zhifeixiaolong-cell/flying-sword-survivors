@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import {
   GAME_WIDTH,
+  PLAYER_SIZE,
   SWORD_POOL_CAPACITY,
   WALL_COLOR,
   WALL_THICKNESS,
@@ -45,20 +46,24 @@ export class MainScene extends Phaser.Scene {
 
   private tryFireSword(): void {
     const pointer = this.input.activePointer;
-    const dx = pointer.x - this.player.x;
-    const dy = pointer.y - this.player.y;
+    // 发射点 = 玩家身体中心 (与入鞘判定同基准, 避免发射后立即触发自杀判定)
+    const fromX = this.player.x;
+    const fromY = this.player.y - PLAYER_SIZE / 2;
+    const dx = pointer.x - fromX;
+    const dy = pointer.y - fromY;
     const magSq = dx * dx + dy * dy;
     // 鼠标贴在玩家身上时跳过, 避免归一化产生 NaN
     if (magSq < 0.25) return;
     const inv = 1 / Math.sqrt(magSq);
-    this.swordPool.tryFire(
-      this,
-      DEFAULT_SWORD_CONFIG,
-      this.player.stats,
-      this.player.x,
-      this.player.y,
-      dx * inv,
-      dy * inv,
-    );
+    this.swordPool.tryFire(this, DEFAULT_SWORD_CONFIG, this.player.stats, {
+      x: fromX,
+      y: fromY,
+      dirX: dx * inv,
+      dirY: dy * inv,
+      getPlayerPos: () => ({
+        x: this.player.x,
+        y: this.player.y - PLAYER_SIZE / 2,
+      }),
+    });
   }
 }
