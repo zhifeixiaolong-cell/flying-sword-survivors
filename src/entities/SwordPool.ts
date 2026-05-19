@@ -12,6 +12,11 @@ export class SwordPool {
     this.capacity = capacity;
   }
 
+  // 池是否还有容量发射. 非破坏性查询, 用于 hover 显隐等 UI 反馈.
+  hasCapacity(): boolean {
+    return this.flying.length < this.capacity;
+  }
+
   tryFire(
     scene: Phaser.Scene,
     config: SwordConfig,

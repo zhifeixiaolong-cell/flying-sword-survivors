@@ -38,3 +38,11 @@ export const SWORD_BLADE_COLOR = 0xff8800;
 export const SWORD_HALO_LENGTH = 48; // 柔光晕长轴 (略大于剑身, 实测调参 ×1.5)
 export const SWORD_HALO_WIDTH = 18; // 柔光晕短轴 (实测调参 ×1.5)
 export const SWORD_HALO_ALPHA = 0.3; // 柔光晕透明度
+
+// 悬浮剑 (Stage 5): 待命状态下显示在玩家身边的虚化剑, 形状复用 SWORD_BLADE/HALO_*
+export const SWORD_HOVER_DISTANCE = 30; // 距玩家身体中心 (px)
+export const SWORD_HOVER_BASE_ALPHA = 0.5; // graphics.alpha 显示基线 (隐藏=0)
+export const SWORD_HOVER_BREATH_RANGE = 0.1; // 呼吸 alpha 浮动范围 (Stage 5 Commit 2)
+// halo 在 graphics 内的 draw alpha. 实际显示 alpha = 此值 × graphics.alpha (双层相乘).
+// M5+ 多剑差异化 halo 时考虑重构 (拆 hover 自己的 halo color/alpha 常量).
+export const SWORD_HOVER_HALO_ALPHA = 0.6;

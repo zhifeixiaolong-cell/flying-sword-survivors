@@ -9,11 +9,13 @@ import {
 } from '../config';
 import { Player } from '../entities/Player';
 import { DEFAULT_SWORD_CONFIG } from '../entities/Sword';
+import { SwordHover } from '../entities/SwordHover';
 import { SwordPool } from '../entities/SwordPool';
 
 export class MainScene extends Phaser.Scene {
   private player!: Player;
   private swordPool!: SwordPool;
+  private swordHover!: SwordHover;
   private keySpace!: Phaser.Input.Keyboard.Key;
 
   constructor() {
@@ -27,6 +29,7 @@ export class MainScene extends Phaser.Scene {
 
     this.player = new Player(this, GAME_WIDTH / 2, WALL_Y);
     this.swordPool = new SwordPool(SWORD_POOL_CAPACITY);
+    this.swordHover = new SwordHover(this);
 
     const keyboard = this.input.keyboard!;
     this.keySpace = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -64,6 +67,16 @@ export class MainScene extends Phaser.Scene {
     }
 
     this.swordPool.update(delta);
+
+    // 悬浮剑每帧更新位置 / 朝向 / 显隐. 玩家身体中心 + 鼠标位置 + 池状态.
+    const pointer = this.input.activePointer;
+    this.swordHover.update(
+      this.player.x,
+      this.player.y - PLAYER_SIZE / 2,
+      pointer.x,
+      pointer.y,
+      this.swordPool.hasCapacity(),
+    );
   }
 
   private tryFireSword(): void {
