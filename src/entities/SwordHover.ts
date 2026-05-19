@@ -8,6 +8,7 @@ import {
   SWORD_HOVER_BASE_ALPHA,
   SWORD_HOVER_DISTANCE,
   SWORD_HOVER_HALO_ALPHA,
+  SWORD_HOVER_PIVOT_OFFSET,
 } from '../config';
 
 // 悬浮剑 (Stage 5): 待命状态下展示在玩家身边的虚化剑.
@@ -30,12 +31,14 @@ export class SwordHover {
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     const g = scene.add.graphics();
+    // 梭形中心偏移到 (PIVOT_OFFSET, 0), 让 graphics 原点 (= 旋转 pivot) 落在
+    // 剑下 1/3 处. 浮游炮语义: 剑柄端朝玩家, 剑尖端朝鼠标, 旋转时剑尖划弧.
     // 1. 柔光晕 (底层): hover 专属 draw alpha (高于实战剑, 配合外层 graphics.alpha 衰减)
     g.fillStyle(SWORD_BLADE_COLOR, SWORD_HOVER_HALO_ALPHA);
-    g.fillEllipse(0, 0, SWORD_HALO_LENGTH, SWORD_HALO_WIDTH);
+    g.fillEllipse(SWORD_HOVER_PIVOT_OFFSET, 0, SWORD_HALO_LENGTH, SWORD_HALO_WIDTH);
     // 2. 梭形剑身 (顶层): 满 alpha, 整体可见度由外层 graphics.alpha 调控
     g.fillStyle(SWORD_BLADE_COLOR, 1.0);
-    g.fillEllipse(0, 0, SWORD_BLADE_LENGTH, SWORD_BLADE_WIDTH);
+    g.fillEllipse(SWORD_HOVER_PIVOT_OFFSET, 0, SWORD_BLADE_LENGTH, SWORD_BLADE_WIDTH);
     g.alpha = 0; // 起始隐藏, 第一次 update + hasCapacity 触发显示 tween
     this.graphics = g;
   }

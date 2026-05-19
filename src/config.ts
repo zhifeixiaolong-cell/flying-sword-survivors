@@ -41,6 +41,9 @@ export const SWORD_HALO_ALPHA = 0.3; // 柔光晕透明度
 
 // 悬浮剑 (Stage 5): 待命状态下显示在玩家身边的虚化剑, 形状复用 SWORD_BLADE/HALO_*
 export const SWORD_HOVER_DISTANCE = 30; // 距玩家身体中心 (px)
+// 梭形中心相对 graphics 原点 (= pivot) 的 x 偏移, 让 pivot 落在剑下 1/3 处:
+// pivot 距剑柄端 8px, 距剑尖端 16px (浮游炮语义: 剑柄朝玩家, 剑尖朝鼠标).
+export const SWORD_HOVER_PIVOT_OFFSET = 4;
 export const SWORD_HOVER_BASE_ALPHA = 0.5; // graphics.alpha 显示基线 (隐藏=0)
 export const SWORD_HOVER_BREATH_RANGE = 0.1; // 呼吸 alpha 浮动范围 (Stage 5 Commit 2)
 // halo 在 graphics 内的 draw alpha. 实际显示 alpha = 此值 × graphics.alpha (双层相乘).
