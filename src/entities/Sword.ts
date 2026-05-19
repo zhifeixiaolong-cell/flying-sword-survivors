@@ -62,7 +62,7 @@ export enum SwordState {
 }
 
 export class Sword {
-  private static readonly TRAIL_LENGTH = 6; // 拖尾历史位置数 (60fps 下覆盖约 100ms)
+  private static readonly TRAIL_LENGTH = 12; // 拖尾历史位置数 (60fps 下覆盖约 200ms, 实测调参 ×2)
 
   private x: number;
   private y: number;
