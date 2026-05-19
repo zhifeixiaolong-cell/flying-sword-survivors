@@ -62,6 +62,8 @@ export enum SwordState {
 }
 
 export class Sword {
+  private static readonly TRAIL_LENGTH = 6; // 拖尾历史位置数 (60fps 下覆盖约 100ms)
+
   private x: number;
   private y: number;
   private dirX: number;
@@ -70,6 +72,7 @@ export class Sword {
   private state: SwordState = SwordState.OUTBOUND;
   private turningElapsedMs = 0; // TURNING 持续时间累加, 进 TURNING 时重置语义靠 state 单向迁移
   private hitCount = 0; // 已穿透敌人数, 用于伤害衰减跟踪 + dev 兜底
+  private readonly trail: { x: number; y: number }[] = []; // 历史位置, 最新在 [0]
 
   // 发射时锁定的常量 (effective = 基础 × 倍率, INV-03):
   private readonly launchX: number;
@@ -84,6 +87,7 @@ export class Sword {
 
   private readonly getPlayerPos: () => { x: number; y: number };
   private readonly graphics: Phaser.GameObjects.Graphics;
+  private readonly trailGraphics: Phaser.GameObjects.Graphics;
   private readonly onDestroyed: () => void;
   private destroyed = false;
 
@@ -133,6 +137,10 @@ export class Sword {
     g.setPosition(this.x, this.y);
     g.setRotation(Math.atan2(this.dirY, this.dirX));
     this.graphics = g;
+
+    // 拖尾用独立 Graphics, depth 设低于剑身让拖尾在底层. 每帧 clear+重绘.
+    this.trailGraphics = scene.add.graphics();
+    this.trailGraphics.setDepth(g.depth - 1);
   }
 
   update(deltaMs: number): void {
@@ -203,14 +211,32 @@ export class Sword {
     this.graphics.setPosition(this.x, this.y);
     this.graphics.setRotation(Math.atan2(this.dirY, this.dirX));
 
-    // ---- 4. dev-time 断言: speed > effective V_min * 0.99 (1% 数值余量) ----
+    // ---- 4. 拖尾滚动 + 渲染. 用物理位置 (this.x/y), 不受 Stage 4 Commit 3
+    // 的远端微颤渲染偏移影响 — "剑挣扎、轨迹稳定" 反而强化抗拒掉头的视觉.
+    this.trail.unshift({ x: this.x, y: this.y });
+    if (this.trail.length > Sword.TRAIL_LENGTH) this.trail.pop();
+    this.trailGraphics.clear();
+    for (let i = 0; i < this.trail.length - 1; i++) {
+      const t = i / Sword.TRAIL_LENGTH; // 0 = 最新, ~1 = 最旧
+      const alpha = 1 - t; // 1.0 → 0
+      const width = (1 - t) * 3 + 1; // 4 → 1 px
+      this.trailGraphics.lineStyle(width, SWORD_BLADE_COLOR, alpha);
+      this.trailGraphics.lineBetween(
+        this.trail[i].x,
+        this.trail[i].y,
+        this.trail[i + 1].x,
+        this.trail[i + 1].y,
+      );
+    }
+
+    // ---- 5. dev-time 断言: speed > effective V_min * 0.99 (1% 数值余量) ----
     if (this.speed < this.effectiveMinSpeed * 0.99) {
       throw new Error(
         `Sword speed (${this.speed}) dropped below 99% of effective V_min (${this.effectiveMinSpeed}). 见 docs/design-invariants.md INV-01`,
       );
     }
 
-    // ---- 5. 入鞘判定 (非 OUTBOUND 状态, 避免出鞘瞬间自杀) ----
+    // ---- 6. 入鞘判定 (非 OUTBOUND 状态, 避免出鞘瞬间自杀) ----
     if (this.state !== SwordState.OUTBOUND) {
       const player = this.getPlayerPos();
       const distToPlayer = Math.hypot(this.x - player.x, this.y - player.y);
@@ -222,7 +248,7 @@ export class Sword {
       }
     }
 
-    // ---- 6. 出画布处理 ----
+    // ---- 7. 出画布处理 ----
     // OUTBOUND 出画布 → 切 TURNING (degenerate case: 朝下/边缘发射时飞行距离
     // < D_max 就出画布, Stage 1 的"出画布 destroy"会跳过 TURNING/RETURNING
     // 让玩家看到"飞剑消失"). TURNING/RETURNING 期间允许短暂在画布外, homing 会带回.
@@ -322,6 +348,7 @@ export class Sword {
     if (this.destroyed) return;
     this.destroyed = true;
     this.graphics.destroy();
+    this.trailGraphics.destroy();
     this.onDestroyed();
   }
 }
