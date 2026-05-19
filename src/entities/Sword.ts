@@ -64,6 +64,7 @@ export class Sword {
   private dirY: number;
   private speed: number;
   private state: SwordState = SwordState.OUTBOUND;
+  private turningElapsedMs = 0; // TURNING 持续时间累加, 进 TURNING 时重置语义靠 state 单向迁移
 
   // 发射时锁定的常量 (effective = 基础 × 倍率, INV-03):
   private readonly launchX: number;
@@ -134,6 +135,8 @@ export class Sword {
     switch (this.state) {
       case SwordState.OUTBOUND: {
         // 方向锁定, 不动. 检查是否飞够 D_max (距发射点, 见 plan F.1).
+        // 进入 TURNING 时不重置 dir, 让 homing 从 OUTBOUND 末段方向连续转向"指向玩家",
+        // 转向过程物理连续 — 远端不再"啪"地反方向.
         const distFromLaunch = Math.hypot(this.x - this.launchX, this.y - this.launchY);
         if (distFromLaunch >= this.effectiveMaxDistance) {
           this.state = SwordState.TURNING;
@@ -141,15 +144,37 @@ export class Sword {
         break;
       }
       case SwordState.TURNING: {
-        // 单帧过渡: 把方向重设为"指向玩家当前位置", 立刻切 RETURNING.
-        // Stage 4 这里会加 100ms 远端微颤, 把单帧延长成 timer-driven.
-        this.aimAtPlayer();
-        this.state = SwordState.RETURNING;
+        this.turningElapsedMs += deltaMs;
+        // 兜底: TURNING 不应该持续超过 1s. 最坏情况 180° 转向 @ 180°/s = 1s.
+        // 加上玩家位置漂移, 留 ~10% 余量后此阈值仍稳妥. 触发说明 homing 不收敛, 是 bug.
+        if (this.turningElapsedMs > 1000) {
+          throw new Error(
+            `Sword TURNING 持续 > 1s (${this.turningElapsedMs}ms), homing 可能不收敛. ` +
+              `dir=(${this.dirX.toFixed(3)}, ${this.dirY.toFixed(3)})`,
+          );
+        }
+        const target = this.computeTargetDirToPlayer();
+        if (target === null) {
+          // 几乎贴着玩家, 转向无意义, 直接进 RETURNING (入鞘判定接管)
+          this.state = SwordState.RETURNING;
+          break;
+        }
+        this.applyHoming(dt, target.x, target.y);
+        // 退出条件: 当前方向与目标方向夹角 < 5° (约 0.087 弧度)
+        const cross = this.dirX * target.y - this.dirY * target.x;
+        const dot = this.dirX * target.x + this.dirY * target.y;
+        const angleDiff = Math.atan2(cross, dot);
+        if (Math.abs(angleDiff) < (5 * Math.PI) / 180) {
+          this.state = SwordState.RETURNING;
+        }
         break;
       }
       case SwordState.RETURNING: {
         // 带角速度限制的 homing — 飞剑画"柔和 C 弧"追玩家, 不机械直追.
-        this.applyHoming(dt);
+        const target = this.computeTargetDirToPlayer();
+        if (target !== null) {
+          this.applyHoming(dt, target.x, target.y);
+        }
         break;
       }
     }
@@ -188,29 +213,21 @@ export class Sword {
     }
   }
 
-  // 把 dirX/dirY 重设为"飞剑当前位置 → 玩家当前位置"的单位向量.
-  // 在 TURNING 用 (回程方向初值), 不在 RETURNING 用 (RETURNING 走 applyHoming).
-  private aimAtPlayer(): void {
+  // 返回"飞剑当前位置 → 玩家当前位置"的单位向量. 贴近玩家时返回 null,
+  // 调用方按各自语义处理 (TURNING: 转 RETURNING; RETURNING: 跳过, 入鞘判定接管).
+  private computeTargetDirToPlayer(): { x: number; y: number } | null {
     const player = this.getPlayerPos();
     const dx = player.x - this.x;
     const dy = player.y - this.y;
     const mag = Math.hypot(dx, dy);
-    if (mag < 1e-6) return; // 几乎贴着玩家, 方向不变 (入鞘判定会处理)
-    this.dirX = dx / mag;
-    this.dirY = dy / mag;
+    if (mag < 1e-6) return null;
+    return { x: dx / mag, y: dy / mag };
   }
 
-  // 角速度限制下的方向修正: 当前方向 → 目标方向 (指向玩家), 每帧最多旋转
+  // 角速度限制下的方向修正: 当前方向 → 目标方向, 每帧最多旋转
   // effectiveTurnRateRad * dt 弧度. atan2(cross, dot) 自带 360° 边界处理.
-  private applyHoming(dt: number): void {
-    const player = this.getPlayerPos();
-    const dx = player.x - this.x;
-    const dy = player.y - this.y;
-    const mag = Math.hypot(dx, dy);
-    if (mag < 1e-6) return;
-    const targetDirX = dx / mag;
-    const targetDirY = dy / mag;
-
+  // 参数化目标方向, TURNING / RETURNING 都用此 helper.
+  private applyHoming(dt: number, targetDirX: number, targetDirY: number): void {
     // 当前方向到目标方向的有符号最短旋转角 (弧度, 范围 (-π, π])
     const cross = this.dirX * targetDirY - this.dirY * targetDirX;
     const dot = this.dirX * targetDirX + this.dirY * targetDirY;
