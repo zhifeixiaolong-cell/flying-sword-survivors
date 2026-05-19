@@ -85,6 +85,7 @@ export class Sword {
   private readonly effectiveDamageCoefficient: number;
   private readonly effectiveSharpness: number;
 
+  private readonly scene: Phaser.Scene; // 持引用用于 tween + 事件发射
   private readonly getPlayerPos: () => { x: number; y: number };
   private readonly graphics: Phaser.GameObjects.Graphics;
   private readonly trailGraphics: Phaser.GameObjects.Graphics;
@@ -117,6 +118,7 @@ export class Sword {
       );
     }
 
+    this.scene = scene;
     this.x = spawn.x;
     this.y = spawn.y;
     this.launchX = spawn.x;
@@ -141,6 +143,17 @@ export class Sword {
     // 拖尾用独立 Graphics, depth 设低于剑身让拖尾在底层. 每帧 clear+重绘.
     this.trailGraphics = scene.add.graphics();
     this.trailGraphics.setDepth(g.depth - 1);
+
+    // 出鞘瞬间: 剑身 scale 1.5 → 1.0 tween (200ms, Power2 ease-out)
+    g.setScale(1.5);
+    scene.tweens.add({
+      targets: g,
+      scale: 1.0,
+      duration: 200,
+      ease: 'Power2',
+    });
+    // 出鞘瞬间: 发射点闪光 (MainScene 监听 sword-spawn 调 flashAt).
+    scene.events.emit('sword-spawn', { x: spawn.x, y: spawn.y });
   }
 
   update(deltaMs: number): void {
@@ -206,9 +219,17 @@ export class Sword {
     }
 
     // ---- 3. 推进位置 + 渲染 ----
+    // 物理位置 (this.x/y) 推进, 渲染位置可能有 TURNING 远端微颤偏移.
     this.x += this.dirX * this.speed * dt;
     this.y += this.dirY * this.speed * dt;
-    this.graphics.setPosition(this.x, this.y);
+    let renderX = this.x;
+    let renderY = this.y;
+    if (this.state === SwordState.TURNING) {
+      // 远端微颤 ±2px (设计文档 §6.4): 视觉上"剑在挣扎掉头". 拖尾不抖, 见 step 4.
+      renderX += (Math.random() - 0.5) * 4;
+      renderY += (Math.random() - 0.5) * 4;
+    }
+    this.graphics.setPosition(renderX, renderY);
     this.graphics.setRotation(Math.atan2(this.dirY, this.dirX));
 
     // ---- 4. 拖尾滚动 + 渲染. 用物理位置 (this.x/y), 不受 Stage 4 Commit 3
@@ -243,7 +264,7 @@ export class Sword {
       // 碰撞圆底部溢出 5px (-29 到 +5), M4+ 场景复杂化 (穿墙敌人/复杂地形) 时 revisit
       const sheatheRadius = PLAYER_SIZE / 2 + SWORD_SHEATHE_RADIUS_PAD;
       if (distToPlayer < sheatheRadius) {
-        this.destroy();
+        this.sheathe();
         return;
       }
     }
@@ -342,6 +363,23 @@ export class Sword {
     // 穿透代价 = 速度衰减 (§4.2 锋利度系数).
     this.speed *= this.effectiveSharpness;
     this.hitCount++;
+
+    // 命中瞬间视觉: 剑身 scale 1.4 → 1.0 tween (100ms, "卡了一下"打击感).
+    this.graphics.setScale(1.4);
+    this.scene.tweens.add({
+      targets: this.graphics,
+      scale: 1.0,
+      duration: 100,
+      ease: 'Power2',
+    });
+  }
+
+  // 入鞘销毁: emit 事件给 MainScene 触发玩家身上闪光, 然后销毁. 与 destroy 区分,
+  // 后者用于 out-of-canvas 极端兜底 (无玩家闪光).
+  private sheathe(): void {
+    const player = this.getPlayerPos();
+    this.scene.events.emit('sword-sheathe', { x: player.x, y: player.y });
+    this.destroy();
   }
 
   private destroy(): void {

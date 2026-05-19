@@ -32,6 +32,28 @@ export class MainScene extends Phaser.Scene {
     this.keySpace = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     // 阻止空格触发浏览器默认行为(滚动页面)
     keyboard.addCapture('SPACE');
+
+    // 出鞘 / 入鞘瞬间在玩家身上闪一下 (Stage 4 视觉反馈, 设计文档 §6.4).
+    // 出 / 入对称: 同色 / 同半径 / 同时长.
+    this.events.on('sword-spawn', ({ x, y }: { x: number; y: number }) =>
+      this.flashAt(x, y),
+    );
+    this.events.on('sword-sheathe', ({ x, y }: { x: number; y: number }) =>
+      this.flashAt(x, y),
+    );
+  }
+
+  // 在指定位置画一个短促白光闪光圈, 100ms 淡出后自销毁.
+  private flashAt(x: number, y: number): void {
+    const flash = this.add.graphics();
+    flash.fillStyle(0xffffff, 0.8);
+    flash.fillCircle(x, y, 20);
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      duration: 100,
+      onComplete: () => flash.destroy(),
+    });
   }
 
   override update(_time: number, delta: number): void {
