@@ -215,8 +215,31 @@ export class Sword {
       }
     }
 
-    // ---- 6. 出画布兜底 (Stage 1 fallback, 理论上 Stage 2 不会触发) ----
-    if (this.x < 0 || this.x > GAME_WIDTH || this.y < 0 || this.y > GAME_HEIGHT) {
+    // ---- 6. 出画布处理 ----
+    // OUTBOUND 出画布 → 切 TURNING (degenerate case: 朝下/边缘发射时飞行距离
+    // < D_max 就出画布, Stage 1 的"出画布 destroy"会跳过 TURNING/RETURNING
+    // 让玩家看到"飞剑消失"). TURNING/RETURNING 期间允许短暂在画布外, homing 会带回.
+    const outOfBounds =
+      this.x < 0 ||
+      this.x > GAME_WIDTH ||
+      this.y < 0 ||
+      this.y > GAME_HEIGHT;
+    if (outOfBounds && this.state === SwordState.OUTBOUND) {
+      this.state = SwordState.TURNING;
+    }
+
+    // 极端兜底: 飞剑距画布中心 > 2 × diagonal 时强制 destroy. 正常路径不触发,
+    // 触发 = NaN/Infinity bug 信号 (开发期 console.error).
+    const distFromCenter = Math.hypot(
+      this.x - GAME_WIDTH / 2,
+      this.y - GAME_HEIGHT / 2,
+    );
+    const escapeThreshold = 2 * Math.hypot(GAME_WIDTH, GAME_HEIGHT);
+    if (distFromCenter > escapeThreshold) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `Sword escaped to (${this.x}, ${this.y}), distance from center ${distFromCenter}px, force destroying. This is a bug.`,
+      );
       this.destroy();
     }
   }
