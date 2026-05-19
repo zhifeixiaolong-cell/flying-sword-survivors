@@ -14,14 +14,14 @@ export const WALL_THICKNESS = 3;
 // ====== Player ======
 export const PLAYER_SIZE = 24;
 export const PLAYER_COLOR = 0x88ccff;
-// INV-01 要求 PLAYER_SPEED < V_min(300), 余量 150 px/s。见 docs/design-invariants.md
+// INV-01 要求 PLAYER_SPEED < V_min(360), 余量 210 px/s。见 docs/design-invariants.md
 export const PLAYER_SPEED = 150;
 
 // ====== Sword (M2) ======
-export const SWORD_INITIAL_SPEED = 1000; // V_max, px/s, 出鞘速度
-export const SWORD_MIN_SPEED = 300; // V_min, px/s, 远端转折速度. 实测调参 200 → 300 (150%)
+export const SWORD_INITIAL_SPEED = 1200; // V_max, px/s, 出鞘速度. 整体提速 +20%
+export const SWORD_MIN_SPEED = 360; // V_min, px/s, 远端转折速度. 整体提速 +20% (200 → 300 → 360)
 export const SWORD_MAX_DISTANCE = 600; // D_max, px, 距角色最远距离
-export const SWORD_SPEED_FLOOR = 100; // 物理兜底, Stage 2 才用
+export const SWORD_SPEED_FLOOR = 120; // 物理兜底. 整体提速 +20%
 export const SWORD_SHARPNESS = 0.7; // 锋利度系数, Stage 3 才用
 export const SWORD_DAMAGE_COEF = 0.1; // 伤害系数, Stage 3 才用
 export const SWORD_TURN_RATE = 180; // 追踪角速度上限 °/s, Stage 2 才用
