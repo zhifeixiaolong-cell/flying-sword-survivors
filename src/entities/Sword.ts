@@ -15,6 +15,7 @@ import {
   SWORD_SHARPNESS,
   SWORD_SHEATHE_RADIUS_PAD,
   SWORD_SPEED_FLOOR,
+  SWORD_TURNING_MAX_MS,
   SWORD_TURN_RATE,
 } from '../config';
 import { PlayerStats } from './PlayerStats';
@@ -145,11 +146,11 @@ export class Sword {
       }
       case SwordState.TURNING: {
         this.turningElapsedMs += deltaMs;
-        // 兜底: TURNING 不应该持续超过 1s. 最坏情况 180° 转向 @ 180°/s = 1s.
-        // 加上玩家位置漂移, 留 ~10% 余量后此阈值仍稳妥. 触发说明 homing 不收敛, 是 bug.
-        if (this.turningElapsedMs > 1000) {
+        // 兜底: TURNING 持续不超过 SWORD_TURNING_MAX_MS. 极端 180° 转向 @ 180°/s
+        // 理论 972ms, 1500ms 给 50% 余量. 触发说明 homing 不收敛, 是 bug.
+        if (this.turningElapsedMs > SWORD_TURNING_MAX_MS) {
           throw new Error(
-            `Sword TURNING 持续 > 1s (${this.turningElapsedMs}ms), homing 可能不收敛. ` +
+            `Sword TURNING 持续 > ${SWORD_TURNING_MAX_MS}ms (${this.turningElapsedMs}ms), homing 可能不收敛. ` +
               `dir=(${this.dirX.toFixed(3)}, ${this.dirY.toFixed(3)})`,
           );
         }
@@ -181,6 +182,13 @@ export class Sword {
 
     // ---- 2. 计算 speed (按距离衰减, 所有状态共用) ----
     this.speed = this.computeSpeed();
+    // TURNING 期间强制 V_min: 切断 "d 缩小 → speed 升高 → orbit lock" 的耦合.
+    // 详见 Commit 4 修复 (`614cdaf` 触发的 orbit dynamic bug).
+    // 物理: arc 半径 = V_min/ω = 64px, 远小于 d ≈ 600 起点, 不会进入 orbit 临界
+    // (d < ~223px). 设计意义: 直接对应 §3.3 "速度自然衰减到最低值 (V_min)".
+    if (this.state === SwordState.TURNING) {
+      this.speed = this.effectiveMinSpeed;
+    }
 
     // ---- 3. 推进位置 + 渲染 ----
     this.x += this.dirX * this.speed * dt;
