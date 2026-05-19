@@ -18,6 +18,7 @@ import {
   SWORD_TURNING_MAX_MS,
   SWORD_TURN_RATE,
 } from '../config';
+import { Enemy } from '../types/Enemy';
 import { PlayerStats } from './PlayerStats';
 
 // 飞剑基础属性接口. M5+ 多种飞剑武器复用此接口, 通过实例化不同 SwordConfig 实现差异化.
@@ -66,6 +67,7 @@ export class Sword {
   private speed: number;
   private state: SwordState = SwordState.OUTBOUND;
   private turningElapsedMs = 0; // TURNING 持续时间累加, 进 TURNING 时重置语义靠 state 单向迁移
+  private hitCount = 0; // 已穿透敌人数, 用于伤害衰减跟踪 + dev 兜底
 
   // 发射时锁定的常量 (effective = 基础 × 倍率, INV-03):
   private readonly launchX: number;
@@ -75,6 +77,8 @@ export class Sword {
   private readonly effectiveMaxDistance: number;
   private readonly effectiveSpeedFloor: number;
   private readonly effectiveTurnRateRad: number; // 弧度/秒
+  private readonly effectiveDamageCoefficient: number;
+  private readonly effectiveSharpness: number;
 
   private readonly getPlayerPos: () => { x: number; y: number };
   private readonly graphics: Phaser.GameObjects.Graphics;
@@ -95,6 +99,9 @@ export class Sword {
     // turnRate 配置单位是 °/s, 内部存弧度/秒方便每帧直接乘 dt
     this.effectiveTurnRateRad =
       ((config.turnRate * stats.turnRateMul) * Math.PI) / 180;
+    this.effectiveDamageCoefficient =
+      config.damageCoefficient * stats.damageCoefficientMul;
+    this.effectiveSharpness = config.sharpness * stats.sharpnessMul;
 
     // INV-01 dev-time 断言: 一旦 PlayerStats / SwordConfig 任何一侧改值,
     // 都会被首次发射触发, 不依赖人工核对 PLAYER_SPEED 与 SWORD_MIN_SPEED.
@@ -286,6 +293,29 @@ export class Sword {
       this.effectiveMinSpeed +
       (this.effectiveInitialSpeed - this.effectiveMinSpeed) * (1 - ratio);
     return Math.max(this.effectiveSpeedFloor, v);
+  }
+
+  // 穿透命中: 计算伤害 → 通知敌人 → 速度按锋利度衰减 → hitCount++.
+  // M2 不触发 (无敌人), M3 敌人系统在碰撞检测中调用此方法.
+  onHit(enemy: Enemy): void {
+    if (this.speed <= 0) {
+      throw new Error(
+        `Sword.onHit called with non-positive speed: ${this.speed}`,
+      );
+    }
+    if (this.hitCount >= 100) {
+      throw new Error(
+        `Sword.hitCount exceeded 100, possible perforation bug`,
+      );
+    }
+
+    // 瞬时伤害 = 当前速度 × 伤害系数 (设计文档 §4.1). INV-03 倍率已锁进 effective.
+    const damage = this.speed * this.effectiveDamageCoefficient;
+    enemy.takeDamage(damage);
+
+    // 穿透代价 = 速度衰减 (§4.2 锋利度系数).
+    this.speed *= this.effectiveSharpness;
+    this.hitCount++;
   }
 
   private destroy(): void {
