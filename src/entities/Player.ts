@@ -12,6 +12,7 @@ export class Player {
   private keyD: Phaser.Input.Keyboard.Key;
   private keyLeft: Phaser.Input.Keyboard.Key;
   private keyRight: Phaser.Input.Keyboard.Key;
+  private currentSpeed = 0; // 当前帧实际移动速度 (Debug HUD 用), 0 或 PLAYER_SPEED
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     this.x = x;
@@ -44,5 +45,10 @@ export class Player {
     const halfWidth = PLAYER_SIZE / 2;
     this.x = Phaser.Math.Clamp(this.x, halfWidth, GAME_WIDTH - halfWidth);
     this.graphics.setPosition(this.x, this.y);
+    this.currentSpeed = direction === 0 ? 0 : PLAYER_SPEED;
+  }
+
+  getCurrentSpeed(): number {
+    return this.currentSpeed;
   }
 }

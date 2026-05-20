@@ -376,6 +376,20 @@ export class Sword {
     this.destroy();
   }
 
+  // Debug HUD 用. SwordState enum 值本身是字符串.
+  getState(): SwordState {
+    return this.state;
+  }
+
+  getSpeed(): number {
+    return this.speed;
+  }
+
+  getDistanceToPlayer(): number {
+    const p = this.getPlayerPos();
+    return Math.hypot(this.x - p.x, this.y - p.y);
+  }
+
   private destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;

@@ -8,6 +8,7 @@ import {
   WALL_Y,
 } from '../config';
 import { Crosshair } from '../entities/Crosshair';
+import { DebugHUD } from '../entities/DebugHUD';
 import { Player } from '../entities/Player';
 import { DEFAULT_SWORD_CONFIG } from '../entities/Sword';
 import { SwordHover } from '../entities/SwordHover';
@@ -18,6 +19,7 @@ export class MainScene extends Phaser.Scene {
   private swordPool!: SwordPool;
   private swordHover!: SwordHover;
   private crosshair!: Crosshair;
+  private debugHUD!: DebugHUD;
   private keySpace!: Phaser.Input.Keyboard.Key;
 
   constructor() {
@@ -36,6 +38,7 @@ export class MainScene extends Phaser.Scene {
     this.swordPool = new SwordPool(SWORD_POOL_CAPACITY);
     this.swordHover = new SwordHover(this);
     this.crosshair = new Crosshair(this);
+    this.debugHUD = new DebugHUD(this);
 
     const keyboard = this.input.keyboard!;
     this.keySpace = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -85,6 +88,20 @@ export class MainScene extends Phaser.Scene {
       hasCapacity,
     );
     this.crosshair.update(pointer.x, pointer.y, hasCapacity);
+
+    // Debug HUD: 默认 OFF, 反引号 toggle. visible=false 时 update 内会 early return.
+    const activeSword = this.swordPool.getActiveSword();
+    this.debugHUD.update({
+      fps: this.game.loop.actualFps,
+      poolUsed: this.swordPool.usedCount(),
+      poolCapacity: this.swordPool.getCapacity(),
+      swordState: activeSword?.getState() ?? null,
+      swordDistance: activeSword?.getDistanceToPlayer() ?? null,
+      swordSpeed: activeSword?.getSpeed() ?? null,
+      playerX: this.player.x,
+      playerY: this.player.y,
+      playerSpeed: this.player.getCurrentSpeed(),
+    });
   }
 
   private tryFireSword(): void {

@@ -17,6 +17,19 @@ export class SwordPool {
     return this.flying.length < this.capacity;
   }
 
+  // Debug HUD 用. M2 单剑模型下最多一把, 返回 null = 池空.
+  getActiveSword(): Sword | null {
+    return this.flying[0] ?? null;
+  }
+
+  usedCount(): number {
+    return this.flying.length;
+  }
+
+  getCapacity(): number {
+    return this.capacity;
+  }
+
   tryFire(
     scene: Phaser.Scene,
     config: SwordConfig,
