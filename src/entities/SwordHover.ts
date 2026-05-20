@@ -93,4 +93,15 @@ export class SwordHover {
   destroy(): void {
     this.graphics.destroy();
   }
+
+  // pivot 在世界坐标的位置 = playerBodyCenter + ANCHOR_DIR × DISTANCE.
+  // MainScene 用此方法获取出/入鞘点 + distance 衰减参考点, 保证视觉连贯
+  // (实战剑出/入鞘都在 hover pivot 位置, 不再"从身体中心冒出").
+  // 入参是玩家身体中心 (= player.x, player.y - PLAYER_SIZE/2).
+  getPivotPosition(playerBodyX: number, playerBodyY: number): { x: number; y: number } {
+    return {
+      x: playerBodyX + SWORD_HOVER_ANCHOR_DIR_X * SWORD_HOVER_DISTANCE,
+      y: playerBodyY + SWORD_HOVER_ANCHOR_DIR_Y * SWORD_HOVER_DISTANCE,
+    };
+  }
 }
