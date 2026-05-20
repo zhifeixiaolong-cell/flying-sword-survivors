@@ -32,7 +32,8 @@ export class SwordHover {
     this.scene = scene;
     const g = scene.add.graphics();
     // 梭形中心偏移到 (PIVOT_OFFSET, 0), 让 graphics 原点 (= 旋转 pivot) 落在
-    // 剑下 1/3 处. 浮游炮语义: 剑柄端朝玩家, 剑尖端朝鼠标, 旋转时剑尖划弧.
+    // 光晕下 1/3 处. 指挥棒语义: 剑柄几乎钉在玩家身边 (距 pivot 4px 小弧),
+    // 剑尖大幅甩动追鼠标方向 (距 pivot 20px 大弧).
     // 1. 柔光晕 (底层): hover 专属 draw alpha (高于实战剑, 配合外层 graphics.alpha 衰减)
     g.fillStyle(SWORD_BLADE_COLOR, SWORD_HOVER_HALO_ALPHA);
     g.fillEllipse(SWORD_HOVER_PIVOT_OFFSET, 0, SWORD_HALO_LENGTH, SWORD_HALO_WIDTH);
