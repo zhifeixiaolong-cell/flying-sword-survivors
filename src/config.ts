@@ -53,10 +53,8 @@ export const SWORD_COLOR_BLADE_GLOW = 0xc0c8e0; // 剑刃外圈光晕 (淡蓝白
 export const SWORD_COLOR_GUARD = 0x4a4a52; // 护手 / 剑柄首 (深灰金属)
 export const SWORD_COLOR_HANDLE = 0x2d2520; // 剑柄主色 (深棕, 缠绳质感)
 export const SWORD_COLOR_HANDLE_BIND = 0x1a1612; // 缠绳分段细线 (更深棕)
-// 流动高光带专用色 (浅蓝白): 与深蓝背景互补 + 跳出白银剑刃, 可见度强.
-// 偏离设计文档 §7 (规定纯白) 是工程现实校正 — 15px 剑刃 + Phaser Graphics
-// 下纯白叠白银对比太低. M5 引入 sprite 资产后可恢复纯白.
-export const SWORD_COLOR_FLOW_HIGHLIGHT = 0xb0d4ff;
+// SWORD_COLOR_FLOW_HIGHLIGHT 已撤. Stage 5 流动效果未实现, 留待 M5 美术资产
+// 重做时按设计文档 §7 (纯白叠白银 alpha 0.5) 严格落地. 详见 SwordRenderer.drawSwordFlow.
 
 // 悬浮剑 (Stage 5): 浮游炮语义 — 位置固定在玩家身边 ANCHOR_DIR × DISTANCE 处,
 // 朝向跟随光标.

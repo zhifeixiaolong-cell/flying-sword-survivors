@@ -5,7 +5,6 @@ import {
   SWORD_COLOR_BLADE,
   SWORD_COLOR_BLADE_GLOW,
   SWORD_COLOR_BLADE_HIGHLIGHT,
-  SWORD_COLOR_FLOW_HIGHLIGHT,
   SWORD_COLOR_GUARD,
   SWORD_COLOR_HANDLE,
   SWORD_COLOR_HANDLE_BIND,
@@ -117,11 +116,15 @@ export function drawSword(
 }
 
 /**
- * 在给定 Graphics 上绘制流动高光带 (悬浮剑专用, 覆盖剑刃区域).
- * 高光带中心在剑刃长轴上的 x 位置 = SWORD_BLADE_LENGTH_NEW × phase, 从剑柄端
- * (x=0) 滑到剑尖端 (x=SWORD_BLADE_LENGTH_NEW=15). 只覆盖剑刃, 不画到护手/剑柄/剑尖.
+ * 悬浮剑流动高光带 (覆盖剑刃区域, 按设计文档 §7 "灵气从主人流向远端").
  *
- * 按设计文档 §7 "灵气从主人流向远端": 每帧重绘, 配合 phase 0→1 线性 tween 实现.
+ * ⚠️ M2 阶段未启用 — Phaser Graphics 在 15px 剑刃上做"亮区轴向流动"是技术栈
+ * 极限, 多次尝试 (亮斑滑动 / 分段 alpha / 双层叠加 / 大幅增强参数) 均不够明显.
+ * 撤回到"完整素剑静态显示", 流动留待 M5 引入 sprite 美术资产时重做.
+ *
+ * 此函数作为 M5 起点保留: 接口已稳定, M5 时改实现方式 (帧动画 / shader
+ * UV scrolling), 调用方 (SwordHover) 重新接入即可. 参数当前严格按 §7 原文:
+ * 亮区 30%, alpha 0.5 (纯白), 周期 1.5s 在调用方的 phase tween 内.
  *
  * @param g 流动专用 Graphics (调用前会 clear). 与底层 drawSword 用同一坐标系
  *          (sword 沿 +x, pivot 在护手中心), 通过 setPosition + setRotation 同步.
@@ -134,12 +137,10 @@ export function drawSwordFlow(
   alphaMul = 1.0,
 ): void {
   g.clear();
-  // 亮区宽度 60% (§7 规定 30%, 工程现实校正: 15px 剑刃 + Phaser Graphics 下
-  // 30% 视觉看不出, 60% 才有"流动到这一段"的可识别变化)
-  const flowWidth = SWORD_BLADE_LENGTH_NEW * 0.6;
+  // §7 原参数 (M2 未启用, M5 重做时可在 sprite 上落地)
+  const flowWidth = SWORD_BLADE_LENGTH_NEW * 0.3;
   const flowCenterX = SWORD_BLADE_LENGTH_NEW * phase;
-  // 浅蓝白 + 高 alpha: 与深蓝背景互补 + 跳出白银剑刃, 可见度强
-  g.fillStyle(SWORD_COLOR_FLOW_HIGHLIGHT, 0.9 * alphaMul);
+  g.fillStyle(SWORD_COLOR_BLADE_HIGHLIGHT, 0.5 * alphaMul);
   g.fillRect(
     flowCenterX - flowWidth / 2,
     -SWORD_BLADE_WIDTH_NEW / 2,
