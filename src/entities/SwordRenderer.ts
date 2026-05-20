@@ -5,6 +5,7 @@ import {
   SWORD_COLOR_BLADE,
   SWORD_COLOR_BLADE_GLOW,
   SWORD_COLOR_BLADE_HIGHLIGHT,
+  SWORD_COLOR_FLOW_HIGHLIGHT,
   SWORD_COLOR_GUARD,
   SWORD_COLOR_HANDLE,
   SWORD_COLOR_HANDLE_BIND,
@@ -133,12 +134,12 @@ export function drawSwordFlow(
   alphaMul = 1.0,
 ): void {
   g.clear();
-  // 高光带宽度: 剑刃长度的 30% (设计文档 §7 亮区宽度)
-  const flowWidth = SWORD_BLADE_LENGTH_NEW * 0.3;
-  // 高光带中心 x: 沿剑刃匀速滑动
+  // 亮区宽度 60% (§7 规定 30%, 工程现实校正: 15px 剑刃 + Phaser Graphics 下
+  // 30% 视觉看不出, 60% 才有"流动到这一段"的可识别变化)
+  const flowWidth = SWORD_BLADE_LENGTH_NEW * 0.6;
   const flowCenterX = SWORD_BLADE_LENGTH_NEW * phase;
-  // 白色高光叠加在底层素剑剑刃 (alpha 0.9 银) 之上, 视觉上"剑气经过段亮白"
-  g.fillStyle(SWORD_COLOR_BLADE_HIGHLIGHT, 0.5 * alphaMul);
+  // 浅蓝白 + 高 alpha: 与深蓝背景互补 + 跳出白银剑刃, 可见度强
+  g.fillStyle(SWORD_COLOR_FLOW_HIGHLIGHT, 0.9 * alphaMul);
   g.fillRect(
     flowCenterX - flowWidth / 2,
     -SWORD_BLADE_WIDTH_NEW / 2,
