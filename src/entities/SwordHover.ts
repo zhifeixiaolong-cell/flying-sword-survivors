@@ -8,6 +8,7 @@ import {
   SWORD_HOVER_ANCHOR_DIR_X,
   SWORD_HOVER_ANCHOR_DIR_Y,
   SWORD_HOVER_BASE_ALPHA,
+  SWORD_HOVER_BREATH_RANGE,
   SWORD_HOVER_DISTANCE,
   SWORD_HOVER_HALO_ALPHA,
   SWORD_HOVER_PIVOT_OFFSET,
@@ -44,6 +45,18 @@ export class SwordHover {
     g.fillEllipse(SWORD_HOVER_PIVOT_OFFSET, 0, SWORD_BLADE_LENGTH, SWORD_BLADE_WIDTH);
     g.alpha = 0; // 起始隐藏, 第一次 update + hasCapacity 触发显示 tween
     this.graphics = g;
+
+    // 流动呼吸 tween: breathOffset 在 0 ↔ BREATH_RANGE 之间循环, 与 baseAlpha
+    // 独立工作 (见类注释方案 1). yoyo + repeat -1 永久循环, scene 销毁时自动停.
+    // 显示时实际 alpha = base 0.5 + breath 0~0.1 = 0.5~0.6, 呼吸幅度 ~20%.
+    scene.tweens.add({
+      targets: this,
+      breathOffset: SWORD_HOVER_BREATH_RANGE,
+      duration: 800,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.inOut',
+    });
   }
 
   // 每帧由 MainScene 调用. playerX/Y = 玩家身体中心, hasCapacity = 池非满.
