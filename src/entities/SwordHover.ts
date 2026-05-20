@@ -7,59 +7,70 @@ import {
   SWORD_HALO_WIDTH,
   SWORD_HOVER_ANCHOR_DIR_X,
   SWORD_HOVER_ANCHOR_DIR_Y,
-  SWORD_HOVER_BASE_ALPHA,
-  SWORD_HOVER_BREATH_RANGE,
+  SWORD_HOVER_BRIGHT_ALPHA,
+  SWORD_HOVER_BRIGHT_WINDOW,
+  SWORD_HOVER_DARK_ALPHA,
   SWORD_HOVER_DISTANCE,
-  SWORD_HOVER_HALO_ALPHA,
+  SWORD_HOVER_FLOW_PERIOD,
+  SWORD_HOVER_HALO_BASE_ALPHA,
   SWORD_HOVER_PIVOT_OFFSET,
+  SWORD_HOVER_SEGMENT_COUNT,
 } from '../config';
 
 // 悬浮剑 (Stage 5): 待命状态下展示在玩家身边的虚化剑.
-// 设计文档 §7: 距玩家中心 30px, 朝向沿 player → mouse 单位向量, 池非空时显示.
-// 视觉与实战飞剑同形不同 alpha — graphics.alpha 控制整体可见度 (含显隐 + 呼吸).
 //
-// 显隐 tween (baseAlpha 0 ↔ SWORD_HOVER_BASE_ALPHA) 与呼吸 tween (breathOffset
-// 0 ↔ SWORD_HOVER_BREATH_RANGE) 独立工作, 每帧 update 合成: alpha = base + offset.
+// 浮游炮语义: 位置固定 (ANCHOR_DIR × DISTANCE), 朝向跟随光标. 两层视觉:
+// - haloGraphics (底层): 静态 alpha 0.15 作背景, 不流动
+// - bladeGraphics (中层): 分 N 段每帧重绘, 段 alpha 由 phase 驱动形成"明暗波
+//   从剑柄滚到剑尖" (设计文档 §7 灵气流转)
+//
+// 显隐 / 流动 / 朝向三个状态独立, 不互相干扰.
 export class SwordHover {
   private readonly scene: Phaser.Scene;
-  private readonly graphics: Phaser.GameObjects.Graphics;
+  private readonly haloGraphics: Phaser.GameObjects.Graphics;
+  private readonly bladeGraphics: Phaser.GameObjects.Graphics;
 
-  // tween 目标 (两个独立字段, 各由独立 tween 驱动)
-  private baseAlpha = 0; // 显隐 tween 控制 (0 = 隐藏, SWORD_HOVER_BASE_ALPHA = 显示)
-  private breathOffset = 0; // 呼吸 tween 控制 (Stage 5 Commit 2 才启动 tween)
+  // 两层独立 base alpha (显隐 tween 控制)
+  private haloBaseAlpha = 0;
+  private bladeBaseAlpha = 0;
 
-  // 显隐状态记忆 — 避免每帧重复创建相同方向的 tween
+  // §7 流动呼吸 phase: 0~1 线性循环, 1500ms 周期. 段 i 的亮峰相位 = i / N.
+  private phase = 0;
+
+  // 当前朝向 (鼠标贴玩家时保持上一帧)
+  private currentRotation = 0;
+
+  // 显隐状态记忆, 避免每帧重复创建相同方向 tween
   private currentlyVisible = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    const g = scene.add.graphics();
-    // 梭形中心偏移到 (PIVOT_OFFSET, 0), 让 graphics 原点 (= 旋转 pivot) 落在
-    // 剑下 1/3 处 (距柄 8px / 距尖 16px). 浮游炮语义: 剑悬浮在玩家身边
-    // 固定位置 (ANCHOR_DIR × DISTANCE), 朝向跟鼠标 — 不是位置和朝向都跟光标.
-    // 1. 柔光晕 (底层): hover 专属 draw alpha (高于实战剑, 配合外层 graphics.alpha 衰减)
-    g.fillStyle(SWORD_BLADE_COLOR, SWORD_HOVER_HALO_ALPHA);
-    g.fillEllipse(SWORD_HOVER_PIVOT_OFFSET, 0, SWORD_HALO_LENGTH, SWORD_HALO_WIDTH);
-    // 2. 梭形剑身 (顶层): 满 alpha, 整体可见度由外层 graphics.alpha 调控
-    g.fillStyle(SWORD_BLADE_COLOR, 1.0);
-    g.fillEllipse(SWORD_HOVER_PIVOT_OFFSET, 0, SWORD_BLADE_LENGTH, SWORD_BLADE_WIDTH);
-    g.alpha = 0; // 起始隐藏, 第一次 update + hasCapacity 触发显示 tween
-    this.graphics = g;
 
-    // 流动呼吸 tween: breathOffset 在 0 ↔ BREATH_RANGE 之间循环, 与 baseAlpha
-    // 独立工作 (见类注释方案 1). yoyo + repeat -1 永久循环, scene 销毁时自动停.
-    // 显示时实际 alpha = base 0.5 + breath 0~0.1 = 0.5~0.6, 呼吸幅度 ~20%.
+    // 底层: halo, 一次性绘制. 中心偏移到 PIVOT_OFFSET 让 pivot 落在剑下 1/3.
+    const halo = scene.add.graphics();
+    halo.fillStyle(SWORD_BLADE_COLOR, 1.0); // graphics 内满 alpha, 外层 graphics.alpha 控显示
+    halo.fillEllipse(SWORD_HOVER_PIVOT_OFFSET, 0, SWORD_HALO_LENGTH, SWORD_HALO_WIDTH);
+    halo.alpha = 0; // 起始隐藏
+    this.haloGraphics = halo;
+
+    // 中层: blade, 不一次性绘制 — renderBladeSegments 每帧分段重绘.
+    // graphics.alpha 保持 1.0 (段 alpha 在 fillStyle 里独立控制).
+    const blade = scene.add.graphics();
+    blade.alpha = 1.0;
+    blade.setDepth(halo.depth + 1);
+    this.bladeGraphics = blade;
+
+    // §7 流动 phase tween: 线性匀速 0→1, 1500ms 周期, 无 yoyo, 永久循环.
+    // phase 走到 1 后自动跳回 0 (repeat 行为), 形成"流到剑尖立即从剑柄重启".
     scene.tweens.add({
       targets: this,
-      breathOffset: SWORD_HOVER_BREATH_RANGE,
-      duration: 800,
-      yoyo: true,
+      phase: 1,
+      duration: SWORD_HOVER_FLOW_PERIOD,
+      ease: 'Linear',
       repeat: -1,
-      ease: 'Sine.inOut',
     });
   }
 
-  // 每帧由 MainScene 调用. playerX/Y = 玩家身体中心, hasCapacity = 池非满.
   update(
     playerX: number,
     playerY: number,
@@ -67,25 +78,31 @@ export class SwordHover {
     mouseY: number,
     hasCapacity: boolean,
   ): void {
-    // 位置: 固定在玩家身边 ANCHOR_DIR × DISTANCE 处 (单剑 = 45° 右上), 静态.
-    this.graphics.setPosition(
-      playerX + SWORD_HOVER_ANCHOR_DIR_X * SWORD_HOVER_DISTANCE,
-      playerY + SWORD_HOVER_ANCHOR_DIR_Y * SWORD_HOVER_DISTANCE,
-    );
-    // 朝向: 跟随光标 (剑尖朝鼠标方向), 动态. 鼠标贴在玩家身上时朝向保持上一帧.
+    // 位置: pivot 固定在玩家身边 ANCHOR_DIR × DISTANCE 处 (浮游炮锚点)
+    const pivotX = playerX + SWORD_HOVER_ANCHOR_DIR_X * SWORD_HOVER_DISTANCE;
+    const pivotY = playerY + SWORD_HOVER_ANCHOR_DIR_Y * SWORD_HOVER_DISTANCE;
+
+    // 朝向: 跟随光标. 鼠标贴在玩家身上 (aimMag < 1e-6) 时保持上一帧朝向.
     const aimDx = mouseX - playerX;
     const aimDy = mouseY - playerY;
     const aimMag = Math.hypot(aimDx, aimDy);
     if (aimMag >= 1e-6) {
-      this.graphics.setRotation(Math.atan2(aimDy, aimDx));
+      this.currentRotation = Math.atan2(aimDy, aimDx);
     }
 
-    // 显隐 tween: 状态切换时启动一次, 不每帧重启
+    // halo / blade 都以 pivot 为旋转中心, 跟剑身一起旋转
+    this.haloGraphics.setPosition(pivotX, pivotY);
+    this.haloGraphics.setRotation(this.currentRotation);
+    this.bladeGraphics.setPosition(pivotX, pivotY);
+    this.bladeGraphics.setRotation(this.currentRotation);
+
+    // 显隐 tween: 状态切换时启动一次, 同时 tween 两个 baseAlpha
     if (hasCapacity && !this.currentlyVisible) {
       this.currentlyVisible = true;
       this.scene.tweens.add({
         targets: this,
-        baseAlpha: SWORD_HOVER_BASE_ALPHA,
+        haloBaseAlpha: SWORD_HOVER_HALO_BASE_ALPHA, // 0.15
+        bladeBaseAlpha: 1.0, // 段 alpha 原范围 (0.5~1.0) 完全呈现
         duration: 100,
         ease: 'Power2',
       });
@@ -93,18 +110,58 @@ export class SwordHover {
       this.currentlyVisible = false;
       this.scene.tweens.add({
         targets: this,
-        baseAlpha: 0,
+        haloBaseAlpha: 0,
+        bladeBaseAlpha: 0,
         duration: 100,
         ease: 'Power2',
       });
     }
 
-    // 合成最终 alpha (Commit 1: breathOffset 永远 = 0, 等同 baseAlpha)
-    this.graphics.alpha = this.baseAlpha + this.breathOffset;
+    // 应用 alpha. halo 静态由 graphics.alpha 控制; blade 段 alpha 在 fillStyle
+    // 里, graphics.alpha 保持 1.0, 显隐通过 bladeBaseAlpha 乘到每段.
+    this.haloGraphics.alpha = this.haloBaseAlpha;
+    this.renderBladeSegments();
+  }
+
+  // §7 分段重绘: 每帧 clear + N 次 fillEllipse, 每段 alpha 是 phase + i 的函数.
+  // 段 i 亮峰相位 = i/N, 形成"明暗波从段 0 (剑柄) 滚到段 N-1 (剑尖)".
+  private renderBladeSegments(): void {
+    this.bladeGraphics.clear();
+    const N = SWORD_HOVER_SEGMENT_COUNT;
+    const totalLength = SWORD_BLADE_LENGTH;
+    const segWidth = totalLength / N; // 4px per segment (24 / 6)
+
+    // 剑身覆盖 (graphics 局部 x): PIVOT_OFFSET - L/2 ~ PIVOT_OFFSET + L/2 = -8 ~ +16
+    // 段 0 中心 x = -8 + segWidth/2 = -6
+    const startX = SWORD_HOVER_PIVOT_OFFSET - totalLength / 2 + segWidth / 2;
+    const brightHalf = SWORD_HOVER_BRIGHT_WINDOW / 2; // 0.15
+
+    for (let i = 0; i < N; i++) {
+      const segCenterX = startX + i * segWidth;
+      // 段 i 距亮峰的相位距离. 模 1 循环边界用 dist > 0.5 ? 1 - dist : dist 处理.
+      let dist = Math.abs(this.phase - i / N);
+      if (dist > 0.5) dist = 1 - dist;
+
+      let segAlpha: number;
+      if (dist < brightHalf) {
+        // 亮区内: BRIGHT_ALPHA → DARK_ALPHA 线性插值, dist=0 时最亮
+        segAlpha =
+          SWORD_HOVER_BRIGHT_ALPHA -
+          (SWORD_HOVER_BRIGHT_ALPHA - SWORD_HOVER_DARK_ALPHA) * (dist / brightHalf);
+      } else {
+        segAlpha = SWORD_HOVER_DARK_ALPHA;
+      }
+
+      // 显隐控制乘到每段最终 alpha (bladeBaseAlpha 显示时=1.0, 隐藏=0)
+      const finalAlpha = segAlpha * this.bladeBaseAlpha;
+      this.bladeGraphics.fillStyle(SWORD_BLADE_COLOR, finalAlpha);
+      this.bladeGraphics.fillEllipse(segCenterX, 0, segWidth, SWORD_BLADE_WIDTH);
+    }
   }
 
   destroy(): void {
-    this.graphics.destroy();
+    this.haloGraphics.destroy();
+    this.bladeGraphics.destroy();
   }
 
   // pivot 在世界坐标的位置 = playerBodyCenter + ANCHOR_DIR × DISTANCE.

@@ -50,8 +50,14 @@ export const SWORD_HOVER_PIVOT_OFFSET = 4;
 // M5+ 多剑系统时此常量扩展为方向数组, 多剑分布在玩家周围不同角度.
 export const SWORD_HOVER_ANCHOR_DIR_X = 0.7071;
 export const SWORD_HOVER_ANCHOR_DIR_Y = -0.7071;
-export const SWORD_HOVER_BASE_ALPHA = 0.5; // graphics.alpha 显示基线 (隐藏=0)
-export const SWORD_HOVER_BREATH_RANGE = 0.1; // 呼吸 alpha 浮动范围 (Stage 5 Commit 2)
-// halo 在 graphics 内的 draw alpha. 实际显示 alpha = 此值 × graphics.alpha (双层相乘).
-// M5+ 多剑差异化 halo 时考虑重构 (拆 hover 自己的 halo color/alpha 常量).
-export const SWORD_HOVER_HALO_ALPHA = 0.6;
+
+// halo 静态 graphics.alpha (Pass 8): halo 不参与流动, 作背景. 0.15 避免稀释
+// 剑身流动对比. halo 几何 (48×18) 不变, 仅调 alpha.
+export const SWORD_HOVER_HALO_BASE_ALPHA = 0.15;
+// 剑身流动呼吸 (Pass 8, 设计文档 §7): 剑分 N 段, 每段 alpha 是 phase + i 的函数,
+// 形成"明暗波从剑柄滚到剑尖". 周期 1.5s 线性匀速.
+export const SWORD_HOVER_SEGMENT_COUNT = 6; // §7 6~10, 取下界视觉对比更明显
+export const SWORD_HOVER_FLOW_PERIOD = 1500; // ms, §7 流动周期
+export const SWORD_HOVER_DARK_ALPHA = 0.5; // §7 暗端 alpha
+export const SWORD_HOVER_BRIGHT_ALPHA = 1.0; // §7 亮端 alpha
+export const SWORD_HOVER_BRIGHT_WINDOW = 0.3; // §7 亮区宽度 (归一化, 剑身 30%)
