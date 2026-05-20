@@ -39,13 +39,17 @@ export const SWORD_HALO_LENGTH = 48; // 柔光晕长轴 (略大于剑身, 实测
 export const SWORD_HALO_WIDTH = 18; // 柔光晕短轴 (实测调参 ×1.5)
 export const SWORD_HALO_ALPHA = 0.3; // 柔光晕透明度
 
-// 悬浮剑 (Stage 5): 待命状态下显示在玩家身边的虚化剑, 形状复用 SWORD_BLADE/HALO_*
-export const SWORD_HOVER_DISTANCE = 30; // 距玩家身体中心 (px)
-// 梭形中心相对 graphics 原点 (= pivot) 的 x 偏移, 让 pivot 落在光晕下 1/3 处.
-// 指挥棒语义: 剑柄端贴近玩家几乎钉死, 剑尖大幅甩动追鼠标方向.
-// 几何: 剑身覆盖 [-4, +20] (pivot 距柄 4 / 距尖 20), 光晕覆盖 [-16, +32]
-// (pivot 距柄 16 / 距尖 32 = 光晕 1/3 from 柄).
-export const SWORD_HOVER_PIVOT_OFFSET = 8;
+// 悬浮剑 (Stage 5): 待命状态下显示在玩家身边的虚化剑, 形状复用 SWORD_BLADE/HALO_*.
+// 浮游炮语义 (Pass 4 终定): 位置固定在玩家身边 ANCHOR_DIR × DISTANCE 处,
+// 朝向跟随光标 — 剑不在玩家周围转圈, 而是悬浮某固定位置 + 炮口跟目标.
+export const SWORD_HOVER_DISTANCE = 12; // pivot 距玩家身体中心 (px). 朝上时 pivot ≈ 身体顶端高度.
+// 梭形中心相对 graphics 原点 (= pivot) 的 x 偏移. pivot 位于梭形长轴上
+// 距剑柄 8px / 距剑尖 16px, 即剑身下 1/3 比例 (from 柄).
+export const SWORD_HOVER_PIVOT_OFFSET = 4;
+// 单剑固定位置方向向量, 45° 右上 (画布 y 向下, y = -√2/2 表示朝上).
+// M5+ 多剑系统时此常量扩展为方向数组, 多剑分布在玩家周围不同角度.
+export const SWORD_HOVER_ANCHOR_DIR_X = 0.7071;
+export const SWORD_HOVER_ANCHOR_DIR_Y = -0.7071;
 export const SWORD_HOVER_BASE_ALPHA = 0.5; // graphics.alpha 显示基线 (隐藏=0)
 export const SWORD_HOVER_BREATH_RANGE = 0.1; // 呼吸 alpha 浮动范围 (Stage 5 Commit 2)
 // halo 在 graphics 内的 draw alpha. 实际显示 alpha = 此值 × graphics.alpha (双层相乘).

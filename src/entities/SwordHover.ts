@@ -5,6 +5,8 @@ import {
   SWORD_BLADE_WIDTH,
   SWORD_HALO_LENGTH,
   SWORD_HALO_WIDTH,
+  SWORD_HOVER_ANCHOR_DIR_X,
+  SWORD_HOVER_ANCHOR_DIR_Y,
   SWORD_HOVER_BASE_ALPHA,
   SWORD_HOVER_DISTANCE,
   SWORD_HOVER_HALO_ALPHA,
@@ -32,8 +34,8 @@ export class SwordHover {
     this.scene = scene;
     const g = scene.add.graphics();
     // 梭形中心偏移到 (PIVOT_OFFSET, 0), 让 graphics 原点 (= 旋转 pivot) 落在
-    // 光晕下 1/3 处. 指挥棒语义: 剑柄几乎钉在玩家身边 (距 pivot 4px 小弧),
-    // 剑尖大幅甩动追鼠标方向 (距 pivot 20px 大弧).
+    // 剑下 1/3 处 (距柄 8px / 距尖 16px). 浮游炮语义: 剑悬浮在玩家身边
+    // 固定位置 (ANCHOR_DIR × DISTANCE), 朝向跟鼠标 — 不是位置和朝向都跟光标.
     // 1. 柔光晕 (底层): hover 专属 draw alpha (高于实战剑, 配合外层 graphics.alpha 衰减)
     g.fillStyle(SWORD_BLADE_COLOR, SWORD_HOVER_HALO_ALPHA);
     g.fillEllipse(SWORD_HOVER_PIVOT_OFFSET, 0, SWORD_HALO_LENGTH, SWORD_HALO_WIDTH);
@@ -52,20 +54,18 @@ export class SwordHover {
     mouseY: number,
     hasCapacity: boolean,
   ): void {
-    // 位置 + 朝向: 沿 player → mouse 方向, 距玩家 30px
-    const dx = mouseX - playerX;
-    const dy = mouseY - playerY;
-    const mag = Math.hypot(dx, dy);
-    if (mag >= 1e-6) {
-      const dirX = dx / mag;
-      const dirY = dy / mag;
-      this.graphics.setPosition(
-        playerX + dirX * SWORD_HOVER_DISTANCE,
-        playerY + dirY * SWORD_HOVER_DISTANCE,
-      );
-      this.graphics.setRotation(Math.atan2(dirY, dirX));
+    // 位置: 固定在玩家身边 ANCHOR_DIR × DISTANCE 处 (单剑 = 45° 右上), 静态.
+    this.graphics.setPosition(
+      playerX + SWORD_HOVER_ANCHOR_DIR_X * SWORD_HOVER_DISTANCE,
+      playerY + SWORD_HOVER_ANCHOR_DIR_Y * SWORD_HOVER_DISTANCE,
+    );
+    // 朝向: 跟随光标 (剑尖朝鼠标方向), 动态. 鼠标贴在玩家身上时朝向保持上一帧.
+    const aimDx = mouseX - playerX;
+    const aimDy = mouseY - playerY;
+    const aimMag = Math.hypot(aimDx, aimDy);
+    if (aimMag >= 1e-6) {
+      this.graphics.setRotation(Math.atan2(aimDy, aimDx));
     }
-    // 鼠标贴在玩家身上: 位置/朝向不变, 保持上一帧状态
 
     // 显隐 tween: 状态切换时启动一次, 不每帧重启
     if (hasCapacity && !this.currentlyVisible) {
