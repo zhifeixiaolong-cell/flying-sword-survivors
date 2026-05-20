@@ -38,9 +38,12 @@ export class DebugHUD {
     this.text.setDepth(2000); // 在准星 (1000) 之上, HUD 永远在最顶
     this.text.setVisible(false);
 
-    // 反引号键 toggle. 注: Phaser.Input.Keyboard.KeyCodes.BACKTICK 不存在,
-    // 用字符串事件名 keydown-BACKTICK 监听.
-    scene.input.keyboard!.on('keydown-BACKTICK', () => {
+    // 反引号键 toggle. 用 addKey + 'down' 事件 (字符串事件名
+    // 'keydown-BACKTICK' 实测不工作, 通过 KeyCodes 直接绑键码更可靠).
+    const keyBacktick = scene.input.keyboard!.addKey(
+      Phaser.Input.Keyboard.KeyCodes.BACKTICK,
+    );
+    keyBacktick.on('down', () => {
       this.visible = !this.visible;
       this.text.setVisible(this.visible);
     });
