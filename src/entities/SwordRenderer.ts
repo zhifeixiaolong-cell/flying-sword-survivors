@@ -7,6 +7,7 @@ import {
   SWORD_COLOR_BLADE_HIGHLIGHT,
   SWORD_COLOR_GUARD,
   SWORD_COLOR_HANDLE,
+  SWORD_COLOR_HANDLE_BIND,
   SWORD_GUARD_LENGTH,
   SWORD_GUARD_WIDTH,
   SWORD_HANDLE_LENGTH,
@@ -38,13 +39,21 @@ export function drawSword(
 ): void {
   g.clear();
 
-  // 1. 外圈光晕 (最底层, 比剑刃略大, 低 alpha) — 给剑一点"光感"
-  g.fillStyle(SWORD_COLOR_BLADE_GLOW, 0.2 * alphaMul);
+  // 1a. 外层光晕 (最大, 最淡, 扩散感) — 模拟剑刃自发光向外渐变
+  g.fillStyle(SWORD_COLOR_BLADE_GLOW, 0.1 * alphaMul);
   g.fillEllipse(
     SWORD_BLADE_LENGTH_NEW / 2,
     0,
-    SWORD_BLADE_LENGTH_NEW + 8,
-    SWORD_BLADE_WIDTH_NEW + 4,
+    SWORD_BLADE_LENGTH_NEW + 12,
+    SWORD_BLADE_WIDTH_NEW + 8,
+  );
+  // 1b. 内层光晕 (较小, 较亮, 集中)
+  g.fillStyle(SWORD_COLOR_BLADE_GLOW, 0.25 * alphaMul);
+  g.fillEllipse(
+    SWORD_BLADE_LENGTH_NEW / 2,
+    0,
+    SWORD_BLADE_LENGTH_NEW + 6,
+    SWORD_BLADE_WIDTH_NEW + 3,
   );
 
   // 2. 剑刃主体 (白银长方形, fillRect 让边缘清晰, 不像椭圆收缩)
@@ -80,14 +89,22 @@ export function drawSword(
     SWORD_GUARD_WIDTH,
   );
 
-  // 6. 剑柄 (handle, 黑色矩形, 缠绳风格)
+  // 6. 剑柄 (handle, 深棕主色)
   g.fillStyle(SWORD_COLOR_HANDLE, 1.0 * alphaMul);
+  const handleStartX = -SWORD_GUARD_LENGTH - SWORD_HANDLE_LENGTH;
   g.fillRect(
-    -SWORD_GUARD_LENGTH - SWORD_HANDLE_LENGTH,
+    handleStartX,
     -SWORD_HANDLE_WIDTH / 2,
     SWORD_HANDLE_LENGTH,
     SWORD_HANDLE_WIDTH,
   );
+
+  // 6b. 缠绳纹理 (3 道更深细线, 分段缠绳感)
+  g.fillStyle(SWORD_COLOR_HANDLE_BIND, 1.0 * alphaMul);
+  for (let i = 1; i <= 3; i++) {
+    const lineX = handleStartX + (SWORD_HANDLE_LENGTH * i) / 4;
+    g.fillRect(lineX - 0.25, -SWORD_HANDLE_WIDTH / 2, 0.5, SWORD_HANDLE_WIDTH);
+  }
 
   // 7. 剑柄首 (pommel, 圆球, 深灰金属)
   g.fillStyle(SWORD_COLOR_GUARD, 1.0 * alphaMul);
@@ -95,5 +112,37 @@ export function drawSword(
     -SWORD_GUARD_LENGTH - SWORD_HANDLE_LENGTH - SWORD_POMMEL_RADIUS,
     0,
     SWORD_POMMEL_RADIUS,
+  );
+}
+
+/**
+ * 在给定 Graphics 上绘制流动高光带 (悬浮剑专用, 覆盖剑刃区域).
+ * 高光带中心在剑刃长轴上的 x 位置 = SWORD_BLADE_LENGTH_NEW × phase, 从剑柄端
+ * (x=0) 滑到剑尖端 (x=SWORD_BLADE_LENGTH_NEW=15). 只覆盖剑刃, 不画到护手/剑柄/剑尖.
+ *
+ * 按设计文档 §7 "灵气从主人流向远端": 每帧重绘, 配合 phase 0→1 线性 tween 实现.
+ *
+ * @param g 流动专用 Graphics (调用前会 clear). 与底层 drawSword 用同一坐标系
+ *          (sword 沿 +x, pivot 在护手中心), 通过 setPosition + setRotation 同步.
+ * @param phase 0~1, 0 = 剑柄端 (剑刃 x=0), 1 = 剑尖端 (剑刃 x=BLADE_LENGTH_NEW)
+ * @param alphaMul 整体 alpha 倍率 (供显隐控制)
+ */
+export function drawSwordFlow(
+  g: Phaser.GameObjects.Graphics,
+  phase: number,
+  alphaMul = 1.0,
+): void {
+  g.clear();
+  // 高光带宽度: 剑刃长度的 30% (设计文档 §7 亮区宽度)
+  const flowWidth = SWORD_BLADE_LENGTH_NEW * 0.3;
+  // 高光带中心 x: 沿剑刃匀速滑动
+  const flowCenterX = SWORD_BLADE_LENGTH_NEW * phase;
+  // 白色高光叠加在底层素剑剑刃 (alpha 0.9 银) 之上, 视觉上"剑气经过段亮白"
+  g.fillStyle(SWORD_COLOR_BLADE_HIGHLIGHT, 0.5 * alphaMul);
+  g.fillRect(
+    flowCenterX - flowWidth / 2,
+    -SWORD_BLADE_WIDTH_NEW / 2,
+    flowWidth,
+    SWORD_BLADE_WIDTH_NEW,
   );
 }

@@ -23,6 +23,9 @@ export class MainScene extends Phaser.Scene {
   }
 
   create(): void {
+    // 深蓝夜空背景 (Stage 5 视觉收尾): 替换 Phaser 默认黑色, 修真夜战氛围.
+    this.cameras.main.setBackgroundColor('#0A1428');
+
     const wall = this.add.graphics();
     wall.lineStyle(WALL_THICKNESS, WALL_COLOR, 1);
     wall.lineBetween(0, WALL_Y, GAME_WIDTH, WALL_Y);
