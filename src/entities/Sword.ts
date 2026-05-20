@@ -4,13 +4,8 @@ import {
   GAME_WIDTH,
   PLAYER_SIZE,
   PLAYER_SPEED,
-  SWORD_BLADE_COLOR,
-  SWORD_BLADE_LENGTH,
-  SWORD_BLADE_WIDTH,
+  SWORD_COLOR_BLADE,
   SWORD_DAMAGE_COEF,
-  SWORD_HALO_ALPHA,
-  SWORD_HALO_LENGTH,
-  SWORD_HALO_WIDTH,
   SWORD_INITIAL_SPEED,
   SWORD_MAX_DISTANCE,
   SWORD_MIN_SPEED,
@@ -22,6 +17,7 @@ import {
 } from '../config';
 import { Enemy } from '../types/Enemy';
 import { PlayerStats } from './PlayerStats';
+import { drawSword } from './SwordRenderer';
 
 // 飞剑基础属性接口. M5+ 多种飞剑武器复用此接口, 通过实例化不同 SwordConfig 实现差异化.
 export interface SwordConfig {
@@ -130,12 +126,10 @@ export class Sword {
     this.onDestroyed = onDestroyed;
 
     const g = scene.add.graphics();
-    // 1. 柔光晕 (先画 → 底层): 较大椭圆 + 低 alpha, 营造"光中有剑"的发光感
-    g.fillStyle(SWORD_BLADE_COLOR, SWORD_HALO_ALPHA);
-    g.fillEllipse(0, 0, SWORD_HALO_LENGTH, SWORD_HALO_WIDTH);
-    // 2. 梭形剑身 (后画 → 顶层): 较小椭圆 + 满 alpha, 长轴沿 +x 与 setRotation 配合
-    g.fillStyle(SWORD_BLADE_COLOR, 1.0);
-    g.fillEllipse(0, 0, SWORD_BLADE_LENGTH, SWORD_BLADE_WIDTH);
+    // M2 素剑: 程序化绘制完整剑形 (剑尖+剑刃+护手+剑柄+剑柄首). 剑沿 +x 方向,
+    // pivot 在护手中心 (graphics 原点). setRotation(atan2(dirY, dirX)) 让剑尖
+    // 朝飞行方向. drawSword 一次性绘制, 后续 scale tween 在 graphics 整体作用.
+    drawSword(g);
     g.setPosition(this.x, this.y);
     g.setRotation(Math.atan2(this.dirY, this.dirX));
     this.graphics = g;
@@ -241,7 +235,7 @@ export class Sword {
       const t = i / Sword.TRAIL_LENGTH; // 0 = 最新, ~1 = 最旧
       const alpha = 1 - t; // 1.0 → 0
       const width = (1 - t) * 3 + 1; // 4 → 1 px
-      this.trailGraphics.lineStyle(width, SWORD_BLADE_COLOR, alpha);
+      this.trailGraphics.lineStyle(width, SWORD_COLOR_BLADE, alpha);
       this.trailGraphics.lineBetween(
         this.trail[i].x,
         this.trail[i].y,

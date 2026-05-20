@@ -31,33 +31,31 @@ export const SWORD_SHEATHE_RADIUS_PAD = 5;
 // TURNING 状态最长持续时间. 极端 180° 转向理论 972ms (175°/180°/s), 给 50% 余量
 export const SWORD_TURNING_MAX_MS = 1500;
 
-// 飞剑视觉 (Stage 4): 梭形剑身 + 柔光晕, 全程序化绘制 (Phaser Graphics)
-export const SWORD_BLADE_LENGTH = 24; // 梭形长轴
-export const SWORD_BLADE_WIDTH = 6; // 梭形短轴
-export const SWORD_BLADE_COLOR = 0xff8800;
-export const SWORD_HALO_LENGTH = 48; // 柔光晕长轴 (略大于剑身, 实测调参 ×1.5)
-export const SWORD_HALO_WIDTH = 18; // 柔光晕短轴 (实测调参 ×1.5)
-export const SWORD_HALO_ALPHA = 0.3; // 柔光晕透明度
+// 飞剑视觉 (Stage 5 Commit A 重做): M2 素剑 — 白银朴素剑形, 包含
+// 剑尖 / 剑刃 / 护手 / 剑柄 / 剑柄首 5 个解剖结构, 体现"初心".
+// 程序化绘制在 src/entities/SwordRenderer.ts, 实战飞剑 + 悬浮剑共享.
+// 剑沿 +x 方向 (剑尖朝右, 剑柄朝左), pivot 在护手中心 (graphics 原点).
 
-// 悬浮剑 (Stage 5): 待命状态下显示在玩家身边的虚化剑, 形状复用 SWORD_BLADE/HALO_*.
-// 浮游炮语义 (Pass 4 终定): 位置固定在玩家身边 ANCHOR_DIR × DISTANCE 处,
-// 朝向跟随光标 — 剑不在玩家周围转圈, 而是悬浮某固定位置 + 炮口跟目标.
-export const SWORD_HOVER_DISTANCE = 40; // pivot 距玩家身体中心 (px). 朝上时 pivot ≈ 身体顶端高度.
-// 梭形中心相对 graphics 原点 (= pivot) 的 x 偏移. pivot 位于梭形长轴上
-// 距剑柄 8px / 距剑尖 16px, 即剑身下 1/3 比例 (from 柄).
-export const SWORD_HOVER_PIVOT_OFFSET = 4;
-// 单剑固定位置方向向量, 45° 右上 (画布 y 向下, y = -√2/2 表示朝上).
-// M5+ 多剑系统时此常量扩展为方向数组, 多剑分布在玩家周围不同角度.
-export const SWORD_HOVER_ANCHOR_DIR_X = 0.7071;
-export const SWORD_HOVER_ANCHOR_DIR_Y = -0.7071;
+// 几何 (单位: px)
+export const SWORD_BLADE_LENGTH_NEW = 15; // 剑刃主体长度
+export const SWORD_BLADE_WIDTH_NEW = 4; // 剑刃宽度
+export const SWORD_TIP_LENGTH = 3; // 剑尖长度 (三角形)
+export const SWORD_GUARD_LENGTH = 2; // 护手长度 (沿剑长轴)
+export const SWORD_GUARD_WIDTH = 7; // 护手宽度 (横向, 比剑刃宽)
+export const SWORD_HANDLE_LENGTH = 3; // 剑柄长度
+export const SWORD_HANDLE_WIDTH = 2.5; // 剑柄宽度
+export const SWORD_POMMEL_RADIUS = 1.5; // 剑柄首半径
 
-// halo 静态 graphics.alpha (Pass 8): halo 不参与流动, 作背景. 0.15 避免稀释
-// 剑身流动对比. halo 几何 (48×18) 不变, 仅调 alpha.
-export const SWORD_HOVER_HALO_BASE_ALPHA = 0.15;
-// 剑身流动呼吸 (Pass 8, 设计文档 §7): 剑分 N 段, 每段 alpha 是 phase + i 的函数,
-// 形成"明暗波从剑柄滚到剑尖". 周期 1.5s 线性匀速.
-export const SWORD_HOVER_SEGMENT_COUNT = 6; // §7 6~10, 取下界视觉对比更明显
-export const SWORD_HOVER_FLOW_PERIOD = 1500; // ms, §7 流动周期
-export const SWORD_HOVER_DARK_ALPHA = 0.5; // §7 暗端 alpha
-export const SWORD_HOVER_BRIGHT_ALPHA = 1.0; // §7 亮端 alpha
-export const SWORD_HOVER_BRIGHT_WINDOW = 0.3; // §7 亮区宽度 (归一化, 剑身 30%)
+// 色彩 (M2 素剑: 白银 + 深灰 + 黑色)
+export const SWORD_COLOR_BLADE = 0xe8e8f0; // 剑刃主色 (白银)
+export const SWORD_COLOR_BLADE_HIGHLIGHT = 0xffffff; // 剑刃中央高光 (纯白)
+export const SWORD_COLOR_BLADE_GLOW = 0xc0c8e0; // 剑刃外圈光晕 (淡蓝白)
+export const SWORD_COLOR_GUARD = 0x4a4a52; // 护手 / 剑柄首 (深灰金属)
+export const SWORD_COLOR_HANDLE = 0x1a1a1f; // 剑柄 (黑色, 缠绳风格)
+
+// 悬浮剑 (Stage 5): 浮游炮语义 — 位置固定在玩家身边 ANCHOR_DIR × DISTANCE 处,
+// 朝向跟随光标.
+export const SWORD_HOVER_DISTANCE = 40; // pivot 距玩家身体中心 (px)
+export const SWORD_HOVER_ANCHOR_DIR_X = 0.7071; // 45° 右上 cos(-45°)
+export const SWORD_HOVER_ANCHOR_DIR_Y = -0.7071; // 45° 右上 sin(-45°) (y 向下)
+export const SWORD_HOVER_BASE_ALPHA = 0.7; // 悬浮剑显示 alpha (比实战剑略低, 体现"待机")
