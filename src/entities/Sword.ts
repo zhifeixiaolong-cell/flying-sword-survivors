@@ -251,6 +251,23 @@ export class Sword {
       );
     }
 
+    // dirMag 单位向量断言 (浮点累积可能让 |dir| 漂移)
+    const dirMag = Math.hypot(this.dirX, this.dirY);
+    if (Math.abs(dirMag - 1) > 0.01) {
+      throw new Error(
+        `Sword dir 非单位向量: mag=${dirMag}, dir=(${this.dirX}, ${this.dirY}). ` +
+          `可能 applyHoming 旋转矩阵累积误差, 或外部代码篡改 dirX/dirY.`,
+      );
+    }
+
+    // 位置 NaN/Inf 断言 (排查 0 距离 / 0 dir / 除 0 等场景)
+    if (!Number.isFinite(this.x) || !Number.isFinite(this.y)) {
+      throw new Error(
+        `Sword position NaN/Inf: (${this.x}, ${this.y}). ` +
+          `可能 speed×dt 在某帧出 NaN, 或入鞘判定后未销毁.`,
+      );
+    }
+
     // ---- 6. 入鞘判定 (非 OUTBOUND 状态, 避免出鞘瞬间自杀) ----
     if (this.state !== SwordState.OUTBOUND) {
       const player = this.getPlayerPos();
