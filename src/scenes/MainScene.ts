@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import {
+  BG_COLOR,
   GAME_WIDTH,
   PLAYER_SIZE,
   SWORD_POOL_CAPACITY,
@@ -27,8 +28,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   create(): void {
-    // 深蓝夜空背景 (Stage 5 视觉收尾): 替换 Phaser 默认黑色, 修真夜战氛围.
-    this.cameras.main.setBackgroundColor('#0A1428');
+    // 深蓝夜空背景 (Stage 5 视觉收尾): 修真夜战氛围. BG_COLOR 集中在 config.ts.
+    this.cameras.main.setBackgroundColor(BG_COLOR);
 
     const wall = this.add.graphics();
     wall.lineStyle(WALL_THICKNESS, WALL_COLOR, 1);
