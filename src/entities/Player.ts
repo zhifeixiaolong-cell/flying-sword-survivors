@@ -1,15 +1,18 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, PLAYER_SIZE, PLAYER_COLOR, PLAYER_SPEED } from '../config';
+import { PlayerStats } from './PlayerStats';
 
 export class Player {
   x: number;
   readonly y: number;
+  readonly stats = new PlayerStats();
 
   private graphics: Phaser.GameObjects.Graphics;
   private keyA: Phaser.Input.Keyboard.Key;
   private keyD: Phaser.Input.Keyboard.Key;
   private keyLeft: Phaser.Input.Keyboard.Key;
   private keyRight: Phaser.Input.Keyboard.Key;
+  private currentSpeed = 0; // 当前帧实际移动速度 (Debug HUD 用), 0 或 PLAYER_SPEED
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     this.x = x;
@@ -42,5 +45,10 @@ export class Player {
     const halfWidth = PLAYER_SIZE / 2;
     this.x = Phaser.Math.Clamp(this.x, halfWidth, GAME_WIDTH - halfWidth);
     this.graphics.setPosition(this.x, this.y);
+    this.currentSpeed = direction === 0 ? 0 : PLAYER_SPEED;
+  }
+
+  getCurrentSpeed(): number {
+    return this.currentSpeed;
   }
 }
