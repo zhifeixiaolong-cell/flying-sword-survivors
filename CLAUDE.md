@@ -50,7 +50,6 @@
 
 **已知债务**:
 - Stage 5 流动呼吸视觉(剑柄 → 剑尖 1.5s 流动光晕)推迟到 M5 美术资产阶段,`drawSwordFlow` 函数保留作起点;Phaser Graphics 在 15px 剑刃上的视觉极限是推迟原因
-- BG_COLOR 硬编码:`#0A1428` 硬编码在 MainScene.ts 而非 config.ts,违反"颜色集中管理"约定,留作 M3 启动前 chore commit 修复
 
 **详细文档**:
 - `docs/m2-sword-system-design.md` — 完整设计(设计哲学 / 推导 / 决策追溯)
